@@ -7,6 +7,7 @@ export interface Album {
   title: string;
   coverUrl: string;
   count: number;
+  spacing?: number; // Расстояние между фото
 }
 
 export interface Photo {
@@ -14,6 +15,7 @@ export interface Photo {
   title: string;
   url: string;
   albumId: string;
+  orientation?: 'portrait' | 'landscape';
 }
 
 // Сохранение альбомов в localStorage
@@ -44,6 +46,47 @@ export const getAlbumPhotos = (albumId: string): Photo[] => {
   return allPhotos.filter(photo => photo.albumId === albumId);
 };
 
+// Добавление фото в альбом
+export const addPhotoToAlbum = (albumId: string, photo: Photo) => {
+  const allPhotos = getAllPhotos();
+  
+  // Определяем ориентацию изображения
+  const img = new Image();
+  img.src = photo.url;
+  
+  // Создаем копию фото с определенной ориентацией
+  const photoWithOrientation = {
+    ...photo,
+    orientation: img.width > img.height ? 'landscape' : 'portrait'
+  };
+  
+  // Сохраняем фото
+  const updatedPhotos = [...allPhotos, photoWithOrientation];
+  savePhotos(updatedPhotos);
+  
+  // Обновляем счетчик фото в альбоме
+  const albums = getAlbums();
+  const updatedAlbums = albums.map(album => {
+    if (album.id === albumId) {
+      // Если у альбома еще нет обложки, устанавливаем ее
+      if (!album.coverUrl || album.coverUrl.includes('unsplash.com')) {
+        return {
+          ...album,
+          coverUrl: photo.url,
+          count: album.count + 1
+        };
+      }
+      return {
+        ...album,
+        count: album.count + 1
+      };
+    }
+    return album;
+  });
+  
+  saveAlbums(updatedAlbums);
+};
+
 // Удаление альбома и всех его фотографий
 export const deleteAlbum = (albumId: string) => {
   // Удаляем альбом
@@ -64,7 +107,8 @@ export const createNewAlbum = (): Album => {
     id: newId,
     title: 'Новый альбом',
     coverUrl: 'https://source.unsplash.com/random/400x300/?abstract',
-    count: 0
+    count: 0,
+    spacing: 3 // Стандартное значение отступа
   };
   
   saveAlbums([...albums, newAlbum]);
@@ -75,6 +119,22 @@ export const createNewAlbum = (): Album => {
 export const updateAlbum = (album: Album) => {
   const albums = getAlbums();
   const updatedAlbums = albums.map(a => a.id === album.id ? album : a);
+  saveAlbums(updatedAlbums);
+};
+
+// Обновление отступов между фото в альбоме
+export const updateAlbumSpacing = (albumId: string, spacing: number) => {
+  const albums = getAlbums();
+  const updatedAlbums = albums.map(album => {
+    if (album.id === albumId) {
+      return {
+        ...album,
+        spacing
+      };
+    }
+    return album;
+  });
+  
   saveAlbums(updatedAlbums);
 };
 

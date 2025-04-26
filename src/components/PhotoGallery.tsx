@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight, Download, Share2, Heart } from 'lucide-react';
@@ -8,12 +8,13 @@ import { Photo } from '@/lib/photoData';
 interface PhotoGalleryProps {
   photos: Photo[];
   className?: string;
+  spacing?: number;
 }
 
-const PhotoGallery = ({ photos, className = '' }: PhotoGalleryProps) => {
+const PhotoGallery = ({ photos, className = '', spacing = 3 }: PhotoGalleryProps) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
-
+  
   const handlePhotoClick = (index: number) => {
     setSelectedPhotoIndex(index);
   };
@@ -53,41 +54,49 @@ const PhotoGallery = ({ photos, className = '' }: PhotoGalleryProps) => {
     );
   }
 
+  // Динамический стиль отступов
+  const gapStyle = `gap-${spacing}`;
+
   return (
     <div className={`${className}`}>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {photos.map((photo, index) => (
-          <div 
-            key={photo.id} 
-            className="group relative cursor-pointer overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover-scale"
-            onClick={() => handlePhotoClick(index)}
-          >
-            <div className="aspect-square overflow-hidden">
-              <img 
-                src={photo.url} 
-                alt={photo.title} 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                loading="lazy"
-              />
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center">
-                <p className="text-white text-sm truncate">{photo.title}</p>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/30"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLike(photo.id);
-                  }}
-                >
-                  <Heart className={`h-4 w-4 ${liked[photo.id] ? 'fill-red-500 text-red-500' : ''}`} />
-                </Button>
+      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 ${gapStyle}`}>
+        {photos.map((photo, index) => {
+          // Определяем размер элемента в зависимости от ориентации
+          const colSpan = photo.orientation === 'landscape' ? 'col-span-2' : 'col-span-1';
+          
+          return (
+            <div 
+              key={photo.id} 
+              className={`group relative cursor-pointer overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover-scale ${colSpan}`}
+              onClick={() => handlePhotoClick(index)}
+            >
+              <div className="aspect-square overflow-hidden">
+                <img 
+                  src={photo.url} 
+                  alt={photo.title} 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  loading="lazy"
+                />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                <div className="flex justify-between items-center">
+                  <p className="text-white text-sm truncate">{photo.title}</p>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/30"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLike(photo.id);
+                    }}
+                  >
+                    <Heart className={`h-4 w-4 ${liked[photo.id] ? 'fill-red-500 text-red-500' : ''}`} />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Модальное окно для просмотра фото */}

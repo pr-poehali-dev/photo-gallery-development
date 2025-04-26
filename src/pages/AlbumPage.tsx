@@ -1,11 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, X, Download, Share2, Heart, Plus, Trash2 } from 'lucide-react';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ChevronLeft, Trash2, Settings } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { getAlbums, getAlbumPhotos, Album, Photo, deleteAlbum } from '@/lib/photoData';
+import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { getAlbums, getAlbumPhotos, Album, Photo, deleteAlbum, updateAlbumSpacing } from '@/lib/photoData';
 import PhotoGallery from '@/components/PhotoGallery';
+import UploadPhotoButton from '@/components/UploadPhotoButton';
 
 const AlbumPage = () => {
   const { albumId } = useParams<{ albumId: string }>();
@@ -13,9 +15,10 @@ const AlbumPage = () => {
   
   const [album, setAlbum] = useState<Album | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [spacing, setSpacing] = useState<number>(3); // Стандартное значение
   
   // Загрузка альбома и фотографий
-  useEffect(() => {
+  const loadAlbumData = () => {
     if (albumId) {
       const allAlbums = getAlbums();
       const foundAlbum = allAlbums.find(a => a.id === albumId) || null;
@@ -23,15 +26,34 @@ const AlbumPage = () => {
       
       if (foundAlbum) {
         setPhotos(getAlbumPhotos(albumId));
+        setSpacing(foundAlbum.spacing || 3);
       }
     }
+  };
+  
+  useEffect(() => {
+    loadAlbumData();
   }, [albumId]);
+  
+  // Обработчик при добавлении новых фото
+  const handlePhotoAdded = () => {
+    loadAlbumData();
+  };
   
   // Удаление альбома и возврат на главную
   const handleDeleteAlbum = () => {
     if (albumId) {
       deleteAlbum(albumId);
       navigate('/');
+    }
+  };
+  
+  // Обновление отступов между фото
+  const handleSpacingChange = (value: number[]) => {
+    const newSpacing = value[0];
+    setSpacing(newSpacing);
+    if (albumId) {
+      updateAlbumSpacing(albumId, newSpacing);
     }
   };
   
@@ -57,14 +79,42 @@ const AlbumPage = () => {
               <ChevronLeft className="h-5 w-5 mr-1" />
               <span>Назад к альбомам</span>
             </Link>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-              onClick={handleDeleteAlbum}
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Настройки альбома</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Отступы между фото</span>
+                        <span className="text-sm font-medium">{spacing}px</span>
+                      </div>
+                      <Slider 
+                        value={[spacing]} 
+                        min={0} 
+                        max={10} 
+                        step={1} 
+                        onValueChange={handleSpacingChange} 
+                      />
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                onClick={handleDeleteAlbum}
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-white mt-2">{album.title}</h1>
           <p className="text-slate-500 dark:text-slate-400">{photos.length} фотографий</p>
@@ -72,16 +122,11 @@ const AlbumPage = () => {
       </header>
       
       <main className="container px-4 py-8 mx-auto">
-        <PhotoGallery photos={photos} />
+        <PhotoGallery photos={photos} spacing={spacing} />
         
-        {/* Можно добавить кнопку добавления фото, если требуется */}
-        {photos.length === 0 && (
-          <div className="flex justify-center mt-6">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Добавить фото
-            </Button>
-          </div>
-        )}
+        <div className="flex justify-center mt-6">
+          <UploadPhotoButton albumId={albumId} onPhotoAdded={handlePhotoAdded} />
+        </div>
       </main>
     </div>
   );
