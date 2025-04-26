@@ -35,8 +35,8 @@ const AlbumPage = () => {
     loadAlbumData();
   }, [albumId]);
   
-  // Обработчик при добавлении новых фото
-  const handlePhotoAdded = () => {
+  // Обработчик при добавлении/удалении фото
+  const handlePhotoChange = () => {
     loadAlbumData();
   };
   
@@ -122,10 +122,15 @@ const AlbumPage = () => {
       </header>
       
       <main className="container px-4 py-8 mx-auto">
-        <PhotoGallery photos={photos} spacing={spacing} />
+        <PhotoGallery 
+          photos={photos} 
+          albumId={albumId || ''} 
+          spacing={spacing} 
+          onPhotoRemoved={handlePhotoChange} 
+        />
         
         <div className="flex justify-center mt-6">
-          <UploadPhotoButton albumId={albumId} onPhotoAdded={handlePhotoAdded} />
+          <UploadPhotoButton albumId={albumId || ''} onPhotoAdded={handlePhotoChange} />
         </div>
       </main>
     </div>

@@ -67,32 +67,32 @@ const Index = () => {
           </Button>
         </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
           {filteredAlbums.length > 0 ? (
             filteredAlbums.map((album) => (
               <Link key={album.id} to={`/album/${album.id}`} className="group hover-scale">
                 <Card className="overflow-hidden border-0 shadow-md hover:shadow-xl transition-shadow duration-300 relative">
-                  <div className="relative h-40 overflow-hidden">
+                  <div className="relative h-32 overflow-hidden">
                     <img 
                       src={album.coverUrl} 
                       alt={album.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-70"></div>
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <h3 className="text-white font-medium text-lg">{album.title}</h3>
-                      <p className="text-white/80 text-sm">{album.count} фото</p>
-                    </div>
                     
                     {/* Кнопка удаления */}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-2 right-2 h-8 w-8 bg-black/30 text-white hover:bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 h-7 w-7 bg-black/30 text-white hover:bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => handleDeleteAlbum(e, album.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
+                  </div>
+                  <div className="p-2 text-center">
+                    <h3 className="text-slate-700 dark:text-slate-200 font-medium text-sm truncate">{album.title}</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs">{album.count} фото</p>
                   </div>
                 </Card>
               </Link>

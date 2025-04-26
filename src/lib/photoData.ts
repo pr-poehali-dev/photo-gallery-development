@@ -50,18 +50,8 @@ export const getAlbumPhotos = (albumId: string): Photo[] => {
 export const addPhotoToAlbum = (albumId: string, photo: Photo) => {
   const allPhotos = getAllPhotos();
   
-  // Определяем ориентацию изображения
-  const img = new Image();
-  img.src = photo.url;
-  
-  // Создаем копию фото с определенной ориентацией
-  const photoWithOrientation = {
-    ...photo,
-    orientation: img.width > img.height ? 'landscape' : 'portrait'
-  };
-  
-  // Сохраняем фото
-  const updatedPhotos = [...allPhotos, photoWithOrientation];
+  // Добавляем фото в общий список
+  const updatedPhotos = [...allPhotos, photo];
   savePhotos(updatedPhotos);
   
   // Обновляем счетчик фото в альбоме
@@ -80,6 +70,48 @@ export const addPhotoToAlbum = (albumId: string, photo: Photo) => {
         ...album,
         count: album.count + 1
       };
+    }
+    return album;
+  });
+  
+  saveAlbums(updatedAlbums);
+};
+
+// Удаление фото из альбома
+export const removePhoto = (photoId: string, albumId: string) => {
+  const allPhotos = getAllPhotos();
+  const updatedPhotos = allPhotos.filter(photo => photo.id !== photoId);
+  savePhotos(updatedPhotos);
+  
+  // Обновляем счетчик фото в альбоме и, возможно, обложку
+  const albums = getAlbums();
+  const remainingPhotos = updatedPhotos.filter(photo => photo.albumId === albumId);
+  
+  const updatedAlbums = albums.map(album => {
+    if (album.id === albumId) {
+      // Если это был последний фото, ставим дефолтную обложку
+      if (remainingPhotos.length === 0) {
+        return {
+          ...album,
+          coverUrl: 'https://source.unsplash.com/random/400x300/?abstract',
+          count: 0
+        };
+      }
+      // Если удалили фото с обложки, берем первое оставшееся фото
+      else if (!remainingPhotos.some(photo => photo.url === album.coverUrl)) {
+        return {
+          ...album,
+          coverUrl: remainingPhotos[0].url,
+          count: remainingPhotos.length
+        };
+      }
+      // Просто обновляем счетчик
+      else {
+        return {
+          ...album,
+          count: remainingPhotos.length
+        };
+      }
     }
     return album;
   });

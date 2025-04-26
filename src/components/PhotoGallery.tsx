@@ -2,18 +2,19 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, ChevronLeft, ChevronRight, Download, Share2, Heart } from 'lucide-react';
-import { Photo } from '@/lib/photoData';
+import { X, ChevronLeft, ChevronRight, Download, Share2, Trash2 } from 'lucide-react';
+import { Photo, removePhoto } from '@/lib/photoData';
 
 interface PhotoGalleryProps {
   photos: Photo[];
+  albumId: string;
   className?: string;
   spacing?: number;
+  onPhotoRemoved?: () => void;
 }
 
-const PhotoGallery = ({ photos, className = '', spacing = 3 }: PhotoGalleryProps) => {
+const PhotoGallery = ({ photos, albumId, className = '', spacing = 3, onPhotoRemoved }: PhotoGalleryProps) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
-  const [liked, setLiked] = useState<Record<string, boolean>>({});
   
   const handlePhotoClick = (index: number) => {
     setSelectedPhotoIndex(index);
@@ -37,11 +38,12 @@ const PhotoGallery = ({ photos, className = '', spacing = 3 }: PhotoGalleryProps
     }
   };
 
-  const handleLike = (photoId: string) => {
-    setLiked(prev => ({
-      ...prev,
-      [photoId]: !prev[photoId]
-    }));
+  const handleDeletePhoto = (e: React.MouseEvent, photoId: string) => {
+    e.stopPropagation();
+    removePhoto(photoId, albumId);
+    if (onPhotoRemoved) {
+      onPhotoRemoved();
+    }
   };
 
   const selectedPhoto = selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null;
@@ -54,49 +56,41 @@ const PhotoGallery = ({ photos, className = '', spacing = 3 }: PhotoGalleryProps
     );
   }
 
-  // Динамический стиль отступов
-  const gapStyle = `gap-${spacing}`;
+  // Формируем стиль для отступов из значения spacing
+  const gapClass = `gap-${spacing}`;
 
   return (
     <div className={`${className}`}>
-      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 ${gapStyle}`}>
-        {photos.map((photo, index) => {
-          // Определяем размер элемента в зависимости от ориентации
-          const colSpan = photo.orientation === 'landscape' ? 'col-span-2' : 'col-span-1';
-          
-          return (
-            <div 
-              key={photo.id} 
-              className={`group relative cursor-pointer overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover-scale ${colSpan}`}
-              onClick={() => handlePhotoClick(index)}
-            >
-              <div className="aspect-square overflow-hidden">
-                <img 
-                  src={photo.url} 
-                  alt={photo.title} 
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  loading="lazy"
-                />
-              </div>
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                <div className="flex justify-between items-center">
-                  <p className="text-white text-sm truncate">{photo.title}</p>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/30"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleLike(photo.id);
-                    }}
-                  >
-                    <Heart className={`h-4 w-4 ${liked[photo.id] ? 'fill-red-500 text-red-500' : ''}`} />
-                  </Button>
-                </div>
-              </div>
+      <div className={`columns-2 sm:columns-3 md:columns-4 lg:columns-5 ${gapClass} space-y-${spacing}`}>
+        {photos.map((photo, index) => (
+          <div 
+            key={photo.id} 
+            className="group relative mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
+            onClick={() => handlePhotoClick(index)}
+          >
+            <div className="overflow-hidden">
+              <img 
+                src={photo.url} 
+                alt={photo.title} 
+                className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+              />
             </div>
-          );
-        })}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+              <p className="text-white text-sm truncate">{photo.title}</p>
+            </div>
+            
+            {/* Кнопка удаления при наведении */}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/40 text-white hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => handleDeletePhoto(e, photo.id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
       </div>
 
       {/* Модальное окно для просмотра фото */}
@@ -117,7 +111,7 @@ const PhotoGallery = ({ photos, className = '', spacing = 3 }: PhotoGalleryProps
                 <img 
                   src={selectedPhoto.url} 
                   alt={selectedPhoto.title} 
-                  className="max-h-[70vh] max-w-full object-contain"
+                  className="max-h-[80vh] max-w-full object-contain"
                 />
               </div>
               
@@ -158,10 +152,16 @@ const PhotoGallery = ({ photos, className = '', spacing = 3 }: PhotoGalleryProps
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    className="rounded-full"
-                    onClick={() => handleLike(selectedPhoto.id)}
+                    className="rounded-full text-red-400 hover:text-red-500 hover:bg-red-100/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (selectedPhotoIndex !== null) {
+                        handleDeletePhoto(e, selectedPhoto.id);
+                        handleClose();
+                      }
+                    }}
                   >
-                    <Heart className={`h-5 w-5 ${liked[selectedPhoto.id] ? 'fill-red-500 text-red-500' : ''}`} />
+                    <Trash2 className="h-5 w-5" />
                   </Button>
                 </div>
               </div>

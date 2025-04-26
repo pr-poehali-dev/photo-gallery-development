@@ -34,6 +34,9 @@ const UploadPhotoButton = ({ albumId, onPhotoAdded }: UploadPhotoButtonProps) =>
         // Создание URL для предпросмотра
         const imageUrl = URL.createObjectURL(file);
         
+        // Определение ориентации изображения
+        const orientation = await getImageOrientation(imageUrl);
+        
         // Создание заголовка из имени файла (без расширения)
         const title = file.name.split('.').slice(0, -1).join('.') || 'Фото';
         
@@ -42,7 +45,8 @@ const UploadPhotoButton = ({ albumId, onPhotoAdded }: UploadPhotoButtonProps) =>
           id: `photo-${Date.now()}-${i}`,
           title,
           url: imageUrl,
-          albumId
+          albumId,
+          orientation
         });
       }
       
@@ -58,6 +62,20 @@ const UploadPhotoButton = ({ albumId, onPhotoAdded }: UploadPhotoButtonProps) =>
     } finally {
       setIsUploading(false);
     }
+  };
+
+  // Функция для определения ориентации изображения
+  const getImageOrientation = (url: string): Promise<'portrait' | 'landscape'> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        resolve(img.width > img.height ? 'landscape' : 'portrait');
+      };
+      img.onerror = () => {
+        resolve('landscape'); // По умолчанию альбомная
+      };
+      img.src = url;
+    });
   };
 
   return (
