@@ -1,57 +1,42 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search } from 'lucide-react';
-
-// Данные альбомов (здесь можно подключить API)
-const albums = [
-  {
-    id: 'nature',
-    title: 'Природа',
-    coverUrl: 'https://source.unsplash.com/random/800x600/?nature',
-    count: 23,
-  },
-  {
-    id: 'city',
-    title: 'Город',
-    coverUrl: 'https://source.unsplash.com/random/800x600/?city',
-    count: 17,
-  },
-  {
-    id: 'people',
-    title: 'Люди',
-    coverUrl: 'https://source.unsplash.com/random/800x600/?people',
-    count: 15,
-  },
-  {
-    id: 'animals',
-    title: 'Животные',
-    coverUrl: 'https://source.unsplash.com/random/800x600/?animals',
-    count: 19,
-  },
-  {
-    id: 'travel',
-    title: 'Путешествия',
-    coverUrl: 'https://source.unsplash.com/random/800x600/?travel',
-    count: 28,
-  },
-  {
-    id: 'food',
-    title: 'Еда',
-    coverUrl: 'https://source.unsplash.com/random/800x600/?food',
-    count: 12,
-  },
-];
+import { Search, Plus, Trash2 } from 'lucide-react';
+import { getAlbums, deleteAlbum, createNewAlbum, Album } from '@/lib/photoData';
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [albums, setAlbums] = useState<Album[]>([]);
+  
+  // Загрузка альбомов из localStorage
+  const loadAlbums = () => {
+    setAlbums(getAlbums());
+  };
+  
+  useEffect(() => {
+    loadAlbums();
+  }, []);
   
   // Фильтрация альбомов по поисковому запросу
   const filteredAlbums = albums.filter(album => 
     album.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // Удаление альбома
+  const handleDeleteAlbum = (e: React.MouseEvent, albumId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    deleteAlbum(albumId);
+    loadAlbums();
+  };
+  
+  // Создание нового альбома
+  const handleCreateAlbum = () => {
+    createNewAlbum();
+    loadAlbums();
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -72,14 +57,22 @@ const Index = () => {
       </header>
       
       <main className="container px-4 py-8 mx-auto">
-        <h2 className="text-xl font-medium text-slate-700 dark:text-slate-200 mb-6">Альбомы</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-medium text-slate-700 dark:text-slate-200">Альбомы</h2>
+          <Button 
+            onClick={handleCreateAlbum}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" /> Новый альбом
+          </Button>
+        </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
           {filteredAlbums.length > 0 ? (
             filteredAlbums.map((album) => (
               <Link key={album.id} to={`/album/${album.id}`} className="group hover-scale">
-                <Card className="overflow-hidden border-0 shadow-md hover:shadow-xl transition-shadow duration-300">
-                  <div className="relative h-52 overflow-hidden">
+                <Card className="overflow-hidden border-0 shadow-md hover:shadow-xl transition-shadow duration-300 relative">
+                  <div className="relative h-40 overflow-hidden">
                     <img 
                       src={album.coverUrl} 
                       alt={album.title}
@@ -90,6 +83,16 @@ const Index = () => {
                       <h3 className="text-white font-medium text-lg">{album.title}</h3>
                       <p className="text-white/80 text-sm">{album.count} фото</p>
                     </div>
+                    
+                    {/* Кнопка удаления */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8 bg-black/30 text-white hover:bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => handleDeleteAlbum(e, album.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </Card>
               </Link>

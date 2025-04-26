@@ -3,13 +3,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight, Download, Share2, Heart } from 'lucide-react';
-
-interface Photo {
-  id: string;
-  title: string;
-  url: string;
-  albumId: string;
-}
+import { Photo } from '@/lib/photoData';
 
 interface PhotoGalleryProps {
   photos: Photo[];
@@ -51,9 +45,17 @@ const PhotoGallery = ({ photos, className = '' }: PhotoGalleryProps) => {
 
   const selectedPhoto = selectedPhotoIndex !== null ? photos[selectedPhotoIndex] : null;
 
+  if (photos.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-60 bg-slate-50 rounded-lg border border-dashed border-slate-300">
+        <p className="text-slate-500">В этом альбоме нет фотографий</p>
+      </div>
+    );
+  }
+
   return (
     <div className={`${className}`}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
         {photos.map((photo, index) => (
           <div 
             key={photo.id} 
