@@ -1,14 +1,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Trash2, Edit2, Settings } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Edit2, Grid, Columns, LayoutGrid } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { getAlbums, getAlbumPhotos, Album, Photo, deleteAlbum, updateAlbumSpacing, updateAlbum } from '@/lib/photoData';
+import { getAlbums, getAlbumPhotos, Album, Photo, deleteAlbum, updateAlbum } from '@/lib/photoData';
 import PhotoGallery from '@/components/PhotoGallery';
 import UploadPhotoButton from '@/components/UploadPhotoButton';
+
+// Типы отображения галереи
+type ViewMode = 'masonry' | 'grid' | 'columns';
 
 const AlbumPage = () => {
   const { albumId } = useParams<{ albumId: string }>();
@@ -20,6 +22,7 @@ const AlbumPage = () => {
   const [photoSize, setPhotoSize] = useState<number>(5); // Стандартное значение
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [albumTitle, setAlbumTitle] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('masonry'); // По умолчанию масонри
   const titleInputRef = useRef<HTMLInputElement>(null);
   
   // Загрузка альбома и фотографий
@@ -34,6 +37,10 @@ const AlbumPage = () => {
         setPhotos(getAlbumPhotos(albumId));
         setSpacing(foundAlbum.spacing || 3);
         setPhotoSize(foundAlbum.photoSize || 5);
+        // Загружаем режим отображения, если он есть
+        if (foundAlbum.viewMode) {
+          setViewMode(foundAlbum.viewMode as ViewMode);
+        }
       }
     }
   };
@@ -55,7 +62,7 @@ const AlbumPage = () => {
   
   // Удаление альбома и возврат на главную
   const handleDeleteAlbum = () => {
-    if (albumId) {
+    if (albumId && window.confirm('Вы уверены, что хотите удалить этот альбом?')) {
       deleteAlbum(albumId);
       navigate('/');
     }
@@ -77,6 +84,15 @@ const AlbumPage = () => {
     setPhotoSize(newSize);
     if (albumId && album) {
       const updatedAlbum = { ...album, photoSize: newSize };
+      updateAlbum(updatedAlbum);
+    }
+  };
+  
+  // Изменение режима отображения галереи
+  const changeViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    if (albumId && album) {
+      const updatedAlbum = { ...album, viewMode: mode };
       updateAlbum(updatedAlbum);
     }
   };
@@ -126,64 +142,27 @@ const AlbumPage = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <header className="bg-white dark:bg-slate-800 shadow-sm py-4 sticky top-0 z-10">
         <div className="container px-4 mx-auto">
+          {/* Верхняя панель с навигацией и действиями */}
           <div className="flex justify-between items-center">
             <Link to="/" className="inline-flex items-center text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
               <ChevronLeft className="h-5 w-5 mr-1" />
               <span>Назад к альбомам</span>
             </Link>
             <div className="flex items-center gap-3">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    <span>Настройки</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                  <div className="space-y-4">
-                    <h3 className="font-medium">Настройки альбома</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Отступы между фото</span>
-                        <span className="text-sm font-medium">{spacing}px</span>
-                      </div>
-                      <Slider 
-                        value={[spacing]} 
-                        min={0} 
-                        max={10} 
-                        step={1} 
-                        onValueChange={handleSpacingChange} 
-                      />
-                      <div className="flex justify-between mt-4">
-                        <span className="text-sm">Размер фотографий</span>
-                        <span className="text-sm font-medium">{photoSize}</span>
-                      </div>
-                      <Slider 
-                        value={[photoSize]} 
-                        min={2} 
-                        max={8} 
-                        step={1} 
-                        onValueChange={handlePhotoSizeChange} 
-                      />
-                    </div>
-                    <div className="pt-2 flex justify-between">
-                      <Button 
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleDeleteAlbum}
-                        className="flex items-center gap-1"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span>Удалить альбом</span>
-                      </Button>
-                      
-                      <UploadPhotoButton albumId={albumId || ''} onPhotoAdded={handlePhotoChange} />
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <UploadPhotoButton albumId={albumId || ''} onPhotoAdded={handlePhotoChange} />
+              <Button 
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteAlbum}
+                className="flex items-center gap-1"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Удалить альбом</span>
+              </Button>
             </div>
           </div>
+          
+          {/* Название альбома */}
           <div className="flex items-center mt-2">
             {isEditingTitle ? (
               <div className="flex w-full max-w-sm items-center space-x-2">
@@ -210,8 +189,69 @@ const AlbumPage = () => {
                 </Button>
               </div>
             )}
+            <p className="text-slate-500 dark:text-slate-400 ml-4">{photos.length} фотографий</p>
           </div>
-          <p className="text-slate-500 dark:text-slate-400">{photos.length} фотографий</p>
+          
+          {/* Настройки отображения */}
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex justify-between mb-1">
+                <span className="text-sm text-slate-600 dark:text-slate-400">Отступы между фото</span>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{spacing}px</span>
+              </div>
+              <Slider 
+                value={[spacing]} 
+                min={0} 
+                max={10} 
+                step={1} 
+                onValueChange={handleSpacingChange} 
+              />
+            </div>
+            <div>
+              <div className="flex justify-between mb-1">
+                <span className="text-sm text-slate-600 dark:text-slate-400">Размер фотографий</span>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{photoSize}</span>
+              </div>
+              <Slider 
+                value={[photoSize]} 
+                min={2} 
+                max={8} 
+                step={1} 
+                onValueChange={handlePhotoSizeChange} 
+              />
+            </div>
+          </div>
+          
+          {/* Переключатели режимов отображения */}
+          <div className="mt-3 flex justify-center gap-2">
+            <Button 
+              variant={viewMode === 'masonry' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => changeViewMode('masonry')}
+              className="flex items-center gap-1"
+            >
+              <Columns className="h-4 w-4" />
+              <span>Мазонри</span>
+            </Button>
+            <Button 
+              variant={viewMode === 'grid' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => changeViewMode('grid')}
+              className="flex items-center gap-1"
+            >
+              <Grid className="h-4 w-4" />
+              <span>Сетка</span>
+            </Button>
+            <Button 
+              variant={viewMode === 'columns' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => changeViewMode('columns')}
+              className="flex items-center gap-1"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              <span>Колонки</span>
+            </Button>
+          </div>
         </div>
       </header>
       
@@ -221,12 +261,15 @@ const AlbumPage = () => {
           albumId={albumId || ''} 
           spacing={spacing} 
           photoSize={photoSize}
+          viewMode={viewMode}
           onPhotoRemoved={handlePhotoChange} 
         />
         
-        <div className="flex justify-center mt-6">
-          <UploadPhotoButton albumId={albumId || ''} onPhotoAdded={handlePhotoChange} />
-        </div>
+        {photos.length === 0 && (
+          <div className="flex justify-center mt-6">
+            <UploadPhotoButton albumId={albumId || ''} onPhotoAdded={handlePhotoChange} />
+          </div>
+        )}
       </main>
     </div>
   );

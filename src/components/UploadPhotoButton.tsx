@@ -1,81 +1,80 @@
 
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Upload } from 'lucide-react';
 import { addPhotoToAlbum } from '@/lib/photoData';
 
 interface UploadPhotoButtonProps {
   albumId: string;
-  onPhotoAdded: () => void;
+  onPhotoAdded?: () => void;
 }
 
 const UploadPhotoButton = ({ albumId, onPhotoAdded }: UploadPhotoButtonProps) => {
-  const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleClick = () => {
-    fileInputRef.current?.click();
+  // Определение ориентации изображения
+  const determineOrientation = (width: number, height: number): 'portrait' | 'landscape' => {
+    return height > width ? 'portrait' : 'landscape';
   };
 
+  // Обработка загрузки файла
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
-    setIsUploading(true);
-    
+
+    setIsLoading(true);
+
     try {
-      // Обработка каждого выбранного файла
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Проверка, что это изображение
+        // Проверяем, что файл - изображение
         if (!file.type.startsWith('image/')) continue;
         
-        // Создание URL для предпросмотра
+        // Создаем URL для изображения
         const imageUrl = URL.createObjectURL(file);
         
-        // Определение ориентации изображения
-        const orientation = await getImageOrientation(imageUrl);
+        // Определяем ориентацию изображения
+        const img = new Image();
         
-        // Создание заголовка из имени файла (без расширения)
-        const title = file.name.split('.').slice(0, -1).join('.') || 'Фото';
-        
-        // Добавление фото в альбом
-        addPhotoToAlbum(albumId, {
-          id: `photo-${Date.now()}-${i}`,
-          title,
-          url: imageUrl,
-          albumId,
-          orientation
+        // Используем промис, чтобы дождаться загрузки изображения
+        await new Promise<void>((resolve) => {
+          img.onload = () => {
+            // Добавляем фото в альбом
+            const orientation = determineOrientation(img.width, img.height);
+            
+            addPhotoToAlbum(albumId, {
+              id: `photo-${Date.now()}-${i}`,
+              title: file.name.split('.')[0],
+              url: imageUrl,
+              albumId,
+              orientation
+            });
+            
+            resolve();
+          };
+          img.src = imageUrl;
         });
       }
       
-      // Сброс input для возможности выбора тех же файлов повторно
+      if (onPhotoAdded) {
+        onPhotoAdded();
+      }
+    } catch (error) {
+      console.error('Error uploading photos:', error);
+    } finally {
+      setIsLoading(false);
+      // Сбрасываем значение input, чтобы можно было загрузить те же файлы повторно
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
-      // Уведомление о завершении загрузки
-      onPhotoAdded();
-    } catch (error) {
-      console.error('Ошибка при загрузке фото:', error);
-    } finally {
-      setIsUploading(false);
     }
   };
 
-  // Функция для определения ориентации изображения
-  const getImageOrientation = (url: string): Promise<'portrait' | 'landscape'> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        resolve(img.width > img.height ? 'landscape' : 'portrait');
-      };
-      img.onerror = () => {
-        resolve('landscape'); // По умолчанию альбомная
-      };
-      img.src = url;
-    });
+  // Обработчик клика по кнопке
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -83,19 +82,28 @@ const UploadPhotoButton = ({ albumId, onPhotoAdded }: UploadPhotoButtonProps) =>
       <input
         type="file"
         ref={fileInputRef}
-        className="hidden"
-        accept="image/*"
-        multiple
         onChange={handleFileChange}
+        multiple
+        accept="image/*"
+        className="hidden"
       />
-      <Button 
-        variant="outline" 
+      <Button
+        onClick={handleButtonClick}
+        disabled={isLoading}
         className="flex items-center gap-2"
-        onClick={handleClick}
-        disabled={isUploading}
+        size="sm"
       >
-        <Plus className="h-4 w-4" /> 
-        {isUploading ? 'Загрузка...' : 'Добавить фото'}
+        {isLoading ? (
+          <>
+            <Upload className="h-4 w-4 animate-pulse" />
+            <span>Загрузка...</span>
+          </>
+        ) : (
+          <>
+            <Plus className="h-4 w-4" />
+            <span>Добавить фото</span>
+          </>
+        )}
       </Button>
     </>
   );

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight, Download, Share2, Trash2 } from 'lucide-react';
@@ -11,10 +11,19 @@ interface PhotoGalleryProps {
   className?: string;
   spacing?: number;
   photoSize?: number;
+  viewMode?: 'masonry' | 'grid' | 'columns';
   onPhotoRemoved?: () => void;
 }
 
-const PhotoGallery = ({ photos, albumId, className = '', spacing = 3, photoSize = 5, onPhotoRemoved }: PhotoGalleryProps) => {
+const PhotoGallery = ({ 
+  photos, 
+  albumId, 
+  className = '', 
+  spacing = 3, 
+  photoSize = 5, 
+  viewMode = 'masonry',
+  onPhotoRemoved 
+}: PhotoGalleryProps) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   
   const handlePhotoClick = (index: number) => {
@@ -41,9 +50,11 @@ const PhotoGallery = ({ photos, albumId, className = '', spacing = 3, photoSize 
 
   const handleDeletePhoto = (e: React.MouseEvent, photoId: string) => {
     e.stopPropagation();
-    removePhoto(photoId, albumId);
-    if (onPhotoRemoved) {
-      onPhotoRemoved();
+    if (window.confirm('Вы уверены, что хотите удалить это фото?')) {
+      removePhoto(photoId, albumId);
+      if (onPhotoRemoved) {
+        onPhotoRemoved();
+      }
     }
   };
 
@@ -51,22 +62,41 @@ const PhotoGallery = ({ photos, albumId, className = '', spacing = 3, photoSize 
 
   if (photos.length === 0) {
     return (
-      <div className="flex justify-center items-center h-60 bg-slate-50 rounded-lg border border-dashed border-slate-300">
-        <p className="text-slate-500">В этом альбоме нет фотографий</p>
+      <div className="flex justify-center items-center h-60 bg-slate-50 rounded-lg border border-dashed border-slate-300 dark:bg-slate-800 dark:border-slate-700">
+        <p className="text-slate-500 dark:text-slate-400">В этом альбоме нет фотографий</p>
       </div>
     );
   }
 
   // Формируем стиль для отступов из значения spacing
   const gapClass = `gap-${spacing}`;
+  
+  // Определяем класс разметки в зависимости от выбранного режима отображения
+  let layoutClass = '';
+  let itemClass = '';
+  
+  switch (viewMode) {
+    case 'masonry':
+      layoutClass = `columns-2 sm:columns-3 md:columns-4 lg:columns-${photoSize} ${gapClass} space-y-${spacing}`;
+      itemClass = 'mb-4 break-inside-avoid';
+      break;
+    case 'grid':
+      layoutClass = `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-${photoSize} ${gapClass}`;
+      itemClass = '';
+      break;
+    case 'columns':
+      layoutClass = `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${gapClass}`;
+      itemClass = '';
+      break;
+  }
 
   return (
     <div className={`${className}`}>
-      <div className={`columns-2 sm:columns-3 md:columns-4 lg:columns-${photoSize} ${gapClass} space-y-${spacing}`}>
+      <div className={layoutClass}>
         {photos.map((photo, index) => (
           <div 
             key={photo.id} 
-            className="group relative mb-4 break-inside-avoid cursor-pointer overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
+            className={`${itemClass} group relative cursor-pointer overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300`}
             onClick={() => handlePhotoClick(index)}
           >
             <div className="overflow-hidden">

@@ -9,6 +9,7 @@ export interface Album {
   count: number;
   spacing?: number; // Расстояние между фото
   photoSize?: number; // Размер фотографий
+  viewMode?: 'masonry' | 'grid' | 'columns'; // Режим отображения
 }
 
 export interface Photo {
@@ -131,6 +132,15 @@ export const deleteAlbum = (albumId: string) => {
   savePhotos(photos);
 };
 
+// Удаление всех альбомов и фотографий
+export const deleteAllAlbums = () => {
+  // Очищаем альбомы
+  saveAlbums([]);
+  
+  // Очищаем фотографии
+  savePhotos([]);
+};
+
 // Создание нового альбома с дефолтным названием
 export const createNewAlbum = (): Album => {
   const albums = getAlbums();
@@ -142,7 +152,8 @@ export const createNewAlbum = (): Album => {
     coverUrl: 'https://source.unsplash.com/random/400x300/?abstract',
     count: 0,
     spacing: 3, // Стандартное значение отступа
-    photoSize: 5 // Стандартное значение размера фото
+    photoSize: 5, // Стандартное значение размера фото
+    viewMode: 'masonry' // Стандартный режим отображения
   };
   
   saveAlbums([...albums, newAlbum]);
@@ -156,32 +167,18 @@ export const updateAlbum = (album: Album) => {
   saveAlbums(updatedAlbums);
 };
 
-// Обновление отступов между фото в альбоме
-export const updateAlbumSpacing = (albumId: string, spacing: number) => {
-  const albums = getAlbums();
-  const updatedAlbums = albums.map(album => {
-    if (album.id === albumId) {
-      return {
-        ...album,
-        spacing
-      };
-    }
-    return album;
-  });
-  
-  saveAlbums(updatedAlbums);
-};
-
 // Контекст для управления состоянием галереи
 export const GalleryContext = createContext<{
   albums: Album[];
   refreshAlbums: () => void;
   deleteAlbum: (id: string) => void;
+  deleteAllAlbums: () => void;
   createNewAlbum: () => Album;
 }>({
   albums: [],
   refreshAlbums: () => {},
   deleteAlbum,
+  deleteAllAlbums,
   createNewAlbum
 });
 
