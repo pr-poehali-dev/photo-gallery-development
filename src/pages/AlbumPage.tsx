@@ -1,11 +1,12 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Trash2, Settings } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Edit2, Settings } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { getAlbums, getAlbumPhotos, Album, Photo, deleteAlbum, updateAlbumSpacing } from '@/lib/photoData';
+import { Input } from "@/components/ui/input";
+import { getAlbums, getAlbumPhotos, Album, Photo, deleteAlbum, updateAlbumSpacing, updateAlbum } from '@/lib/photoData';
 import PhotoGallery from '@/components/PhotoGallery';
 import UploadPhotoButton from '@/components/UploadPhotoButton';
 
@@ -16,6 +17,10 @@ const AlbumPage = () => {
   const [album, setAlbum] = useState<Album | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [spacing, setSpacing] = useState<number>(3); // Стандартное значение
+  const [photoSize, setPhotoSize] = useState<number>(5); // Стандартное значение
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [albumTitle, setAlbumTitle] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
   
   // Загрузка альбома и фотографий
   const loadAlbumData = () => {
@@ -25,8 +30,10 @@ const AlbumPage = () => {
       setAlbum(foundAlbum);
       
       if (foundAlbum) {
+        setAlbumTitle(foundAlbum.title);
         setPhotos(getAlbumPhotos(albumId));
         setSpacing(foundAlbum.spacing || 3);
+        setPhotoSize(foundAlbum.photoSize || 5);
       }
     }
   };
@@ -34,6 +41,12 @@ const AlbumPage = () => {
   useEffect(() => {
     loadAlbumData();
   }, [albumId]);
+  
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+    }
+  }, [isEditingTitle]);
   
   // Обработчик при добавлении/удалении фото
   const handlePhotoChange = () => {
@@ -52,11 +65,50 @@ const AlbumPage = () => {
   const handleSpacingChange = (value: number[]) => {
     const newSpacing = value[0];
     setSpacing(newSpacing);
-    if (albumId) {
-      updateAlbumSpacing(albumId, newSpacing);
+    if (albumId && album) {
+      const updatedAlbum = { ...album, spacing: newSpacing };
+      updateAlbum(updatedAlbum);
     }
   };
   
+  // Обновление размера фото
+  const handlePhotoSizeChange = (value: number[]) => {
+    const newSize = value[0];
+    setPhotoSize(newSize);
+    if (albumId && album) {
+      const updatedAlbum = { ...album, photoSize: newSize };
+      updateAlbum(updatedAlbum);
+    }
+  };
+  
+  // Редактирование названия альбома
+  const startEditingTitle = () => {
+    setIsEditingTitle(true);
+  };
+  
+  const saveAlbumTitle = () => {
+    if (albumId && album && albumTitle.trim() !== '') {
+      const updatedAlbum = { ...album, title: albumTitle };
+      updateAlbum(updatedAlbum);
+      setAlbum(updatedAlbum);
+      setIsEditingTitle(false);
+    } else {
+      // Если название пустое, возвращаем предыдущее
+      setAlbumTitle(album?.title || '');
+      setIsEditingTitle(false);
+    }
+  };
+  
+  // Обработка Enter и Escape
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      saveAlbumTitle();
+    } else if (e.key === 'Escape') {
+      setAlbumTitle(album?.title || '');
+      setIsEditingTitle(false);
+    }
+  };
+
   if (!album) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -72,18 +124,19 @@ const AlbumPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <header className="bg-white dark:bg-slate-800 shadow-sm py-4">
+      <header className="bg-white dark:bg-slate-800 shadow-sm py-4 sticky top-0 z-10">
         <div className="container px-4 mx-auto">
           <div className="flex justify-between items-center">
             <Link to="/" className="inline-flex items-center text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
               <ChevronLeft className="h-5 w-5 mr-1" />
               <span>Назад к альбомам</span>
             </Link>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Settings className="h-5 w-5" />
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    <span>Настройки</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
@@ -101,22 +154,63 @@ const AlbumPage = () => {
                         step={1} 
                         onValueChange={handleSpacingChange} 
                       />
+                      <div className="flex justify-between mt-4">
+                        <span className="text-sm">Размер фотографий</span>
+                        <span className="text-sm font-medium">{photoSize}</span>
+                      </div>
+                      <Slider 
+                        value={[photoSize]} 
+                        min={2} 
+                        max={8} 
+                        step={1} 
+                        onValueChange={handlePhotoSizeChange} 
+                      />
+                    </div>
+                    <div className="pt-2 flex justify-between">
+                      <Button 
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleDeleteAlbum}
+                        className="flex items-center gap-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>Удалить альбом</span>
+                      </Button>
+                      
+                      <UploadPhotoButton albumId={albumId || ''} onPhotoAdded={handlePhotoChange} />
                     </div>
                   </div>
                 </PopoverContent>
               </Popover>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                onClick={handleDeleteAlbum}
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white mt-2">{album.title}</h1>
+          <div className="flex items-center mt-2">
+            {isEditingTitle ? (
+              <div className="flex w-full max-w-sm items-center space-x-2">
+                <Input
+                  ref={titleInputRef}
+                  type="text"
+                  value={albumTitle}
+                  onChange={(e) => setAlbumTitle(e.target.value)}
+                  onBlur={saveAlbumTitle}
+                  onKeyDown={handleTitleKeyDown}
+                  className="text-xl font-bold"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{album.title}</h1>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={startEditingTitle}
+                >
+                  <Edit2 className="h-4 w-4 text-slate-500" />
+                </Button>
+              </div>
+            )}
+          </div>
           <p className="text-slate-500 dark:text-slate-400">{photos.length} фотографий</p>
         </div>
       </header>
@@ -126,6 +220,7 @@ const AlbumPage = () => {
           photos={photos} 
           albumId={albumId || ''} 
           spacing={spacing} 
+          photoSize={photoSize}
           onPhotoRemoved={handlePhotoChange} 
         />
         

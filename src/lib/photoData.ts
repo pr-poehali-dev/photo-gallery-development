@@ -8,6 +8,7 @@ export interface Album {
   coverUrl: string;
   count: number;
   spacing?: number; // Расстояние между фото
+  photoSize?: number; // Размер фотографий
 }
 
 export interface Photo {
@@ -140,7 +141,8 @@ export const createNewAlbum = (): Album => {
     title: 'Новый альбом',
     coverUrl: 'https://source.unsplash.com/random/400x300/?abstract',
     count: 0,
-    spacing: 3 // Стандартное значение отступа
+    spacing: 3, // Стандартное значение отступа
+    photoSize: 5 // Стандартное значение размера фото
   };
   
   saveAlbums([...albums, newAlbum]);

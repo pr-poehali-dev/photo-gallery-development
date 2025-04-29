@@ -10,10 +10,11 @@ interface PhotoGalleryProps {
   albumId: string;
   className?: string;
   spacing?: number;
+  photoSize?: number;
   onPhotoRemoved?: () => void;
 }
 
-const PhotoGallery = ({ photos, albumId, className = '', spacing = 3, onPhotoRemoved }: PhotoGalleryProps) => {
+const PhotoGallery = ({ photos, albumId, className = '', spacing = 3, photoSize = 5, onPhotoRemoved }: PhotoGalleryProps) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   
   const handlePhotoClick = (index: number) => {
@@ -61,7 +62,7 @@ const PhotoGallery = ({ photos, albumId, className = '', spacing = 3, onPhotoRem
 
   return (
     <div className={`${className}`}>
-      <div className={`columns-2 sm:columns-3 md:columns-4 lg:columns-5 ${gapClass} space-y-${spacing}`}>
+      <div className={`columns-2 sm:columns-3 md:columns-4 lg:columns-${photoSize} ${gapClass} space-y-${spacing}`}>
         {photos.map((photo, index) => (
           <div 
             key={photo.id} 
